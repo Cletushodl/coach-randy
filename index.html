@@ -174,6 +174,7 @@ tbody tr:last-child td{border-bottom:none}
 <div class="chart-box"><h3>Distance Over Time</h3><canvas id="distChart"></canvas></div>
 <div class="chart-box"><h3>Cadence Over Time</h3><canvas id="cadChart"></canvas></div>
 </div>
+<div id="runTrendSummary" class="chart-box"></div>
 </div>
 
 <div id="body" class="section">
@@ -467,6 +468,96 @@ function renderRunCharts(){
   charts.hr=line('hrChart',runs.map(r=>r.hr),'#ef4444','HR');
   charts.dist=line('distChart',runs.map(r=>r.distance),'#10b981','Distance');
   charts.cad=line('cadChart',runs.map(r=>r.cadence),'#f59e0b','Cadence');
+  renderRunTrendSummary();
+}
+
+function renderRunTrendSummary(){
+  let el=document.getElementById('runTrendSummary');
+  let runs=workouts.filter(w=>w.type==='Run').sort((a,b)=>a.date.localeCompare(b.date));
+  if(runs.length<2){el.style.display='none';return;}
+
+  let first=runs.slice(0,Math.ceil(runs.length/2));
+  let second=runs.slice(Math.ceil(runs.length/2));
+  let avg=(arr,fn)=>{let v=arr.map(fn).filter(x=>x!=null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null;};
+  
+  let earlyPace=avg(first,r=>paceToMin(r.pace)), latePace=avg(second,r=>paceToMin(r.pace));
+  let earlyHR=avg(first,r=>r.hr), lateHR=avg(second,r=>r.hr);
+  let earlyDist=avg(first,r=>r.distance), lateDist=avg(second,r=>r.distance);
+  let earlyCad=avg(first,r=>r.cadence), lateCad=avg(second,r=>r.cadence);
+  let totalMi=runs.reduce((s,r)=>s+(r.distance||0),0);
+  let totalTime=runs.reduce((s,r)=>{let p=r.duration.split(':').map(Number);return s+(p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1]);},0);
+  let totalHrs=(totalTime/3600).toFixed(1);
+  let days=Math.round((new Date(runs[runs.length-1].date+'T12:00:00')-new Date(runs[0].date+'T12:00:00'))/864e5);
+  let miPerWeek=(totalMi/(days/7)).toFixed(1);
+  
+  let fmtPace=p=>p?Math.floor(p)+"'"+String(Math.round((p%1)*60)).padStart(2,'0')+'"':'-';
+  let delta=(a,b)=>a&&b?(a-b).toFixed(1):null;
+  let hrD=delta(earlyHR,lateHR);
+  let paceD=earlyPace&&latePace?((earlyPace-latePace)*60).toFixed(0):null;
+  let distD=delta(lateDist,earlyDist);
+  let cadD=delta(lateCad,earlyCad);
+
+  let h=[];
+  h.push(`<h3>🏃 Run Trend Analysis</h3>`);
+  h.push(`<div style="font-size:.875rem;line-height:1.8;color:var(--text2);margin-top:10px">`);
+
+  // Overview
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--text)">Overview:</strong> ${runs.length} runs over ${days} days · ${fmt(totalMi,1)} total miles · ${totalHrs} hours · ${miPerWeek} mi/week avg</p>`);
+
+  // Pace
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">⏱️ Pace:</strong> `);
+  h.push(`Early avg <strong style="color:var(--text)">${fmtPace(earlyPace)}/mi</strong> → Recent <strong style="color:var(--text)">${fmtPace(latePace)}/mi</strong>. `);
+  if(paceD>0) h.push(`<strong style="color:var(--green)">Improved ${paceD}s/mi.</strong> Faster while likely running smarter — great sign. `);
+  else if(paceD<0) h.push(`Pace slowed ${Math.abs(paceD)}s/mi — often expected as distance increases or you focus on zone 2 training. Slower now = faster later. `);
+  else h.push(`Holding steady. Consistency is its own reward. `);
+  h.push(`</p>`);
+
+  // Heart Rate
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">❤️ Heart Rate:</strong> `);
+  h.push(`Early avg <strong style="color:var(--text)">${Math.round(earlyHR)} BPM</strong> → Recent <strong style="color:var(--text)">${Math.round(lateHR)} BPM</strong>. `);
+  if(hrD>5) h.push(`<strong style="color:var(--green)">Down ${Math.round(hrD)} BPM</strong> — textbook cardiac adaptation. Your heart is pumping more blood per beat (increased stroke volume). This is the #1 sign of improved aerobic fitness. `);
+  else if(hrD>0) h.push(`Down ${Math.round(hrD)} BPM — slight improvement, heading the right direction. `);
+  else if(hrD<-5) h.push(`Up ${Math.round(Math.abs(hrD))} BPM — could indicate harder efforts, accumulated fatigue, or increasing distance. Monitor recovery and sleep. `);
+  else h.push(`Stable — maintaining current fitness level. `);
+
+  // Zone estimate
+  let maxHR=Math.max(...runs.map(r=>r.hr).filter(Boolean));
+  let zone2ceil=Math.round(maxHR*0.80);
+  let zone2floor=Math.round(maxHR*0.70);
+  h.push(`Estimated Zone 2 range: <strong style="color:var(--text)">${zone2floor}–${zone2ceil} BPM</strong> (based on observed max ${maxHR}).`);
+  h.push(`</p>`);
+
+  // Distance
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">📏 Distance:</strong> `);
+  h.push(`Early avg <strong style="color:var(--text)">${fmt(earlyDist,2)} mi</strong> → Recent <strong style="color:var(--text)">${fmt(lateDist,2)} mi</strong>. `);
+  if(distD>0) h.push(`<strong style="color:var(--green)">+${distD} mi/run avg.</strong> Mileage building nicely. Follow the 10% rule — don't increase weekly volume more than 10% to avoid injury. `);
+  else if(distD<0) h.push(`Slightly less per run — mix of easy and long runs is normal and healthy. `);
+  else h.push(`Consistent distance. `);
+  h.push(`</p>`);
+
+  // Cadence
+  if(earlyCad&&lateCad){
+    h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">👟 Cadence:</strong> `);
+    h.push(`Early avg <strong style="color:var(--text)">${Math.round(earlyCad)} SPM</strong> → Recent <strong style="color:var(--text)">${Math.round(lateCad)} SPM</strong>. `);
+    if(lateCad>=170) h.push(`Excellent cadence — 170+ SPM means efficient stride mechanics and lower injury risk. `);
+    else if(lateCad>=160) h.push(`Good cadence range. Gradually working toward 170+ SPM will improve efficiency and reduce ground contact time. `);
+    else if(lateCad>=140) h.push(`Moderate cadence. Try short bursts at higher turnover — aim for 160+ SPM to reduce overstriding and impact forces. `);
+    else h.push(`Low cadence suggests overstriding. Focus on shorter, quicker steps — think "light feet." This single change can prevent most running injuries. `);
+    h.push(`</p>`);
+  }
+
+  // Coaching notes
+  h.push(`<p><strong style="color:var(--accent)">💡 Coach's Notes:</strong> `);
+  if(lateHR>160) h.push(`You're running hot — most runs are above Zone 2. Try slowing down until you can hold a conversation. 80% of runs should be easy. The aerobic base you build there is what makes the fast runs faster. `);
+  else if(lateHR>150) h.push(`HR is moderate — mix of easy and tempo efforts. Consider dedicating 1-2 runs/week strictly to easy pace (conversational) to build aerobic base. `);
+  else h.push(`Good HR discipline — you're running at an aerobic-friendly effort. This builds the engine. Sprinkle in one tempo or interval session per week to sharpen speed. `);
+  
+  if(totalMi<15) h.push(`Weekly volume is still building. Focus on consistency (3-4 runs/week) before worrying about speed.`);
+  else if(totalMi<30) h.push(`Solid weekly mileage. Ready to introduce structured workouts: 1 long run, 1 tempo, 1-2 easy runs per week.`);
+  else h.push(`Strong volume. Time to periodize — alternate build weeks and recovery weeks to keep progressing without burnout.`);
+  h.push(`</p></div>`);
+
+  el.innerHTML=h.join('');
 }
 
 function renderBodyCharts(){
