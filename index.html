@@ -18,6 +18,14 @@
 }
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
+/* Ticker */
+.ticker-wrap{overflow:hidden;background:var(--surface);border-bottom:1px solid rgba(255,255,255,.05);padding:8px 0;white-space:nowrap}
+.ticker{display:inline-block;animation:scroll 60s linear infinite;font-size:.8125rem;color:var(--text2);font-weight:400}
+.ticker span{margin-right:48px}
+.ticker span .btc{color:#f7931a;font-weight:600}
+.ticker span .emoji{margin-right:4px}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
 /* Toast */
 .toast{position:fixed;top:24px;right:24px;background:var(--surface);border:1px solid var(--green);color:var(--green);padding:14px 24px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;z-index:1000;transform:translateX(120%);transition:transform .4s cubic-bezier(.16,1,.3,1);backdrop-filter:blur(12px);display:flex;align-items:center;gap:8px}
 .toast.show{transform:translateX(0)}
@@ -126,6 +134,7 @@ tbody tr:last-child td{border-bottom:none}
 </style>
 </head>
 <body>
+<div class="ticker-wrap"><div class="ticker" id="ticker"></div></div>
 <div class="header"><div class="header-content">
 <h1>🏋️ Coach Randy the Trainer</h1>
 <p>Track · Train · Transform</p>
@@ -560,6 +569,50 @@ function addComp(){
 
 // Init
 renderDash();renderProgressSummary();renderLog();renderPRs();
+
+// Ticker
+(function(){
+  const jokes=[
+    "₿ Bitcoin and burpees: both hurt now, pay off later.",
+    "💪 Your gains are like sats — stack 'em daily.",
+    "₿ HODL your plank like you HODL your Bitcoin.",
+    "🏃 Running from fiat since 2009.",
+    "₿ Proof of Work isn't just for miners — it's leg day too.",
+    "💪 Can't fake reps. Can't fake Bitcoin. Both are trustless.",
+    "₿ Your body is a node. Keep it running.",
+    "🏋️ 21 million sats of effort, zero shortcuts.",
+    "₿ Bear markets build character. So do hill sprints.",
+    "💪 Stack sats. Stack plates. Same energy.",
+    "₿ Not your keys, not your gains. Put in the work.",
+    "🏃 Bitcoin fixes money. Running fixes everything else.",
+    "₿ Difficulty adjustment: add 5 lbs every week.",
+    "💪 Low time preference = meal prep AND DCA.",
+    "₿ You wouldn't sell your Bitcoin at a loss. Don't skip leg day either.",
+    "🏋️ Hard money. Hard body. No excuses.",
+    "₿ Every sat counts. Every rep counts.",
+    "🏃 The halving: when you cut your mile time in half.",
+    "₿ NGMI if you skip cardio.",
+    "💪 Fiat is bloated. Don't let your physique be too.",
+    "₿ Number go up. Weight go down. This is the way.",
+    "🏋️ Lightning-fast reps, on-chain recovery.",
+    "₿ Your portfolio and your deadlift should both make people uncomfortable.",
+    "🏃 Running a full node and a full mile — both non-negotiable.",
+    "₿ Whales lift heavy. Be a whale.",
+  ];
+  // Fetch BTC price
+  let priceStr='';
+  fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+    .then(r=>r.json()).then(d=>{priceStr='<span class="btc">₿ BTC: $'+d.bitcoin.usd.toLocaleString()+'</span>';buildTicker();})
+    .catch(()=>buildTicker());
+
+  function buildTicker(){
+    let items=jokes.slice().sort(()=>Math.random()-.5);
+    if(priceStr)items.unshift(priceStr);
+    let html=items.map(j=>j.startsWith('<')?`<span>${j}</span>`:`<span>${j}</span>`).join('');
+    document.getElementById('ticker').innerHTML=html+html;
+  }
+  buildTicker();
+})();
 // Lazy-load run/body charts only when tab visited
 </script>
 </body>
