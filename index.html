@@ -257,7 +257,13 @@ const SEED_COMP=[
 {date:"2026-01-26",weight:227.0,bmi:31.1,bf:18.3,muscle:176.2,skeletal:52.8,fatfree:185.4,visceral:13}
 ];
 
+const DATA_VERSION='v2';
 function load(key,seed){
+  if(localStorage.getItem('cr_version')!==DATA_VERSION){
+    localStorage.removeItem('cr_workouts');
+    localStorage.removeItem('cr_comps');
+    localStorage.setItem('cr_version',DATA_VERSION);
+  }
   let stored=JSON.parse(localStorage.getItem(key)||'[]');
   let dates=new Set(stored.map(r=>r.date+JSON.stringify(r)));
   seed.forEach(s=>{if(!dates.has(s.date+JSON.stringify(s)))stored.push(s)});
