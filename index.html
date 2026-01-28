@@ -178,6 +178,8 @@ tbody tr:last-child td{border-bottom:none}
 <div class="chart-grid">
 <div class="chart-box"><h3>Weight Over Time</h3><canvas id="weightChart"></canvas></div>
 <div class="chart-box"><h3>Body Fat % Over Time</h3><canvas id="bfChart"></canvas></div>
+<div class="chart-box"><h3>Muscle Mass Over Time</h3><canvas id="muscleChart"></canvas></div>
+<div class="chart-box"><h3>Fat-Free Weight Over Time</h3><canvas id="ffwChart"></canvas></div>
 </div>
 </div>
 
@@ -465,6 +467,10 @@ function renderBodyCharts(){
   charts.weight=new Chart(ctx1,{type:'line',data:{labels,datasets:[{label:'Weight (lbs)',data:comps.map(c=>c.weight),borderColor:'#ec4899',backgroundColor:makeGradient(ctx1,'#ec4899'),tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#ec4899',pointBorderColor:'#161b22',pointBorderWidth:2,borderWidth:2.5}]},options:baseOpts});
   const ctx2=document.getElementById('bfChart').getContext('2d');
   charts.bf=new Chart(ctx2,{type:'line',data:{labels,datasets:[{label:'Body Fat %',data:comps.map(c=>c.bf),borderColor:'#f59e0b',backgroundColor:makeGradient(ctx2,'#f59e0b'),tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#f59e0b',pointBorderColor:'#161b22',pointBorderWidth:2,borderWidth:2.5}]},options:baseOpts});
+  const ctx3=document.getElementById('muscleChart').getContext('2d');
+  charts.muscle=new Chart(ctx3,{type:'line',data:{labels,datasets:[{label:'Muscle Mass (lbs)',data:comps.map(c=>c.muscle),borderColor:'#22c55e',backgroundColor:makeGradient(ctx3,'#22c55e'),tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e',pointBorderColor:'#161b22',pointBorderWidth:2,borderWidth:2.5}]},options:baseOpts});
+  const ctx4=document.getElementById('ffwChart').getContext('2d');
+  charts.ffw=new Chart(ctx4,{type:'line',data:{labels,datasets:[{label:'Fat-Free Weight (lbs)',data:comps.map(c=>c.fatfree),borderColor:'#06b6d4',backgroundColor:makeGradient(ctx4,'#06b6d4'),tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#06b6d4',pointBorderColor:'#161b22',pointBorderWidth:2,borderWidth:2.5}]},options:baseOpts});
 }
 
 let sortDir={};
