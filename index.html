@@ -308,7 +308,7 @@ function renderDash(){
   workouts.forEach(w=>{
     let d=new Date(w.date+'T12:00:00');
     let day=d.getDay();
-    let mon=new Date(d);mon.setDate(d.getDate()-((day+6)%7));
+    let mon=new Date(d);mon.setDate(d.getDate()-day);
     let key=mon.toISOString().slice(0,10);
     if(!weeks[key])weeks[key]={mi:0,cal:0,cnt:0};
     weeks[key].mi+=w.distance||0;
