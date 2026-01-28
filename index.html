@@ -504,6 +504,8 @@ function renderPRs(){
   if(fastest)html+=`<div class="pr-item"><div class="pr-icon">🏃</div><div class="pr-content"><div class="val">${fastest.raw}/mi</div><div class="desc">Fastest Pace — ${shortDate(fastest.d)}</div></div></div>`;
   if(longest)html+=`<div class="pr-item"><div class="pr-icon">📏</div><div class="pr-content"><div class="val">${fmt(longest.distance,2)} mi</div><div class="desc">Longest Run — ${shortDate(longest.date)}</div></div></div>`;
   if(lowestHR)html+=`<div class="pr-item"><div class="pr-icon">❤️</div><div class="pr-content"><div class="val">${lowestHR.hr} BPM</div><div class="desc">Lowest Avg HR on Run — ${shortDate(lowestHR.date)}</div></div></div>`;
+  let maxHRrun=runs.filter(r=>r.hr).reduce((a,b)=>(a.hr||0)>(b.hr||0)?a:b,runs[0]);
+  if(maxHRrun&&maxHRrun.hr)html+=`<div class="pr-item"><div class="pr-icon">🔥</div><div class="pr-content"><div class="val">${maxHRrun.hr} BPM</div><div class="desc">Max Avg HR on Run — ${shortDate(maxHRrun.date)}</div></div></div>`;
   let totalMi=workouts.reduce((s,w)=>s+(w.distance||0),0);
   html+=`<div class="pr-item"><div class="pr-icon">🗺️</div><div class="pr-content"><div class="val">${fmt(totalMi,1)} mi</div><div class="desc">Total Mileage — All Time</div></div></div>`;
   document.getElementById('prList').innerHTML=html;
