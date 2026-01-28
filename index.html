@@ -279,6 +279,7 @@ document.getElementById('nav').addEventListener('click',e=>{
 function paceToMin(p){if(!p)return null;let m=p.match(/(\d+)'(\d+)/);return m?+m[1]+ +m[2]/60:null;}
 function fmt(n,d=1){return n!=null?n.toFixed(d):'-';}
 function shortDate(d){let dt=new Date(d+'T12:00:00');return(dt.getMonth()+1)+'/'+dt.getDate();}
+function weekLabel(sunStr){let s=new Date(sunStr+'T12:00:00');let e=new Date(s);e.setDate(s.getDate()+6);return(s.getMonth()+1)+'/'+s.getDate()+'–'+(e.getMonth()+1)+'/'+e.getDate();}
 
 // Chart defaults
 Chart.defaults.color='#8b949e';
@@ -318,7 +319,7 @@ function renderDash(){
   let wks=Object.keys(weeks).sort();
   if(charts.weekly)charts.weekly.destroy();
   const ctx=document.getElementById('weeklyChart').getContext('2d');
-  charts.weekly=new Chart(ctx,{type:'bar',data:{labels:wks.map(k=>'Wk '+shortDate(k)),datasets:[
+  charts.weekly=new Chart(ctx,{type:'bar',data:{labels:wks.map(k=>weekLabel(k)),datasets:[
     {label:'Miles',data:wks.map(k=>weeks[k].mi),backgroundColor:'rgba(6,182,212,.7)',borderRadius:6,borderSkipped:false},
     {label:'Workouts',data:wks.map(k=>weeks[k].cnt),backgroundColor:'rgba(124,58,237,.6)',borderRadius:6,borderSkipped:false}
   ]},options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:true,labels:{usePointStyle:true,pointStyle:'circle',padding:16,color:'#8b949e',font:{size:11}}}}}});
