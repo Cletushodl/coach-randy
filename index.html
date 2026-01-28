@@ -60,6 +60,13 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 canvas{max-height:260px}
 
 /* Empty State */
+.run-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;transition:border-color .2s}
+.run-card:hover{border-color:var(--accent1)}
+.run-card-header{font-size:.95rem;font-weight:600;margin-bottom:12px;color:var(--accent1)}
+.run-card-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px}
+.run-stat{text-align:center}
+.run-stat-val{display:block;font-size:1.1rem;font-weight:700;color:var(--text1)}
+.run-stat-lbl{display:block;font-size:.7rem;color:var(--text3);text-transform:uppercase;margin-top:2px}
 .empty-state{text-align:center;padding:48px 24px;color:var(--text3)}
 .empty-state .icon{font-size:2.5rem;margin-bottom:12px}
 .empty-state p{font-size:.875rem;color:var(--text2)}
@@ -130,6 +137,7 @@ tbody tr:last-child td{border-bottom:none}
 
 <div class="nav" id="nav">
 <button class="active" data-tab="dashboard">Dashboard</button>
+<button data-tab="runlist">All Runs</button>
 <button data-tab="runs">Run Trends</button>
 <button data-tab="body">Body Comp</button>
 <button data-tab="log">Workout Log</button>
@@ -146,6 +154,11 @@ tbody tr:last-child td{border-bottom:none}
 <div class="card"><div class="card-icon">👟</div><div class="big" id="totalRuns">0</div><div class="label">Runs</div></div>
 </div>
 <div class="chart-box"><h3>Weekly Summary</h3><canvas id="weeklyChart"></canvas></div>
+</div>
+
+<div id="runlist" class="section">
+<div class="section-title">🏃 All Runs</div>
+<div id="runCards"></div>
 </div>
 
 <div id="runs" class="section">
@@ -273,6 +286,7 @@ document.getElementById('nav').addEventListener('click',e=>{
   sec.classList.add('active');
   e.target.classList.add('active');
   // Lazy-render charts on first visit
+  if(tab==='runlist')renderRunList();
   if(tab==='runs'&&!charts.pace)renderRunCharts();
   if(tab==='body'&&!charts.weight)renderBodyCharts();
 });
@@ -324,6 +338,31 @@ function renderDash(){
     {label:'Miles',data:wks.map(k=>weeks[k].mi),backgroundColor:'rgba(6,182,212,.7)',borderRadius:6,borderSkipped:false},
     {label:'Workouts',data:wks.map(k=>weeks[k].cnt),backgroundColor:'rgba(124,58,237,.6)',borderRadius:6,borderSkipped:false}
   ]},options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:true,labels:{usePointStyle:true,pointStyle:'circle',padding:16,color:'#8b949e',font:{size:11}}}}}});
+}
+
+function renderRunList(){
+  let runs=workouts.filter(w=>w.type==='Run').slice().reverse();
+  let el=document.getElementById('runCards');
+  if(!runs.length){el.innerHTML='<div class="empty-state">No runs logged yet</div>';return;}
+  el.innerHTML=runs.map(r=>{
+    let paceVal=r.pace||'—';
+    let d=new Date(r.date+'T12:00:00');
+    let dayName=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    let monthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    let dateStr=dayName+', '+monthName+' '+d.getDate()+', '+d.getFullYear();
+    return `<div class="run-card">
+      <div class="run-card-header">${dateStr}</div>
+      <div class="run-card-stats">
+        <div class="run-stat"><span class="run-stat-val">${r.distance!=null?r.distance.toFixed(2):'-'}</span><span class="run-stat-lbl">Miles</span></div>
+        <div class="run-stat"><span class="run-stat-val">${r.duration}</span><span class="run-stat-lbl">Duration</span></div>
+        <div class="run-stat"><span class="run-stat-val">${paceVal}</span><span class="run-stat-lbl">Pace/mi</span></div>
+        <div class="run-stat"><span class="run-stat-val">${r.hr||'-'}</span><span class="run-stat-lbl">Avg HR</span></div>
+        <div class="run-stat"><span class="run-stat-val">${r.cadence||'-'}</span><span class="run-stat-lbl">Cadence</span></div>
+        <div class="run-stat"><span class="run-stat-val">${r.calories||'-'}</span><span class="run-stat-lbl">Calories</span></div>
+        <div class="run-stat"><span class="run-stat-val">${r.elevation!=null?r.elevation+'ft':'-'}</span><span class="run-stat-lbl">Elevation</span></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderRunCharts(){
