@@ -183,6 +183,7 @@ tbody tr:last-child td{border-bottom:none}
 <div class="chart-box"><h3>Muscle Mass Over Time</h3><canvas id="muscleChart"></canvas></div>
 <div class="chart-box"><h3>Fat-Free Weight Over Time</h3><canvas id="ffwChart"></canvas></div>
 </div>
+<div id="bodySummary" class="chart-box"></div>
 </div>
 
 <div id="log" class="section">
@@ -479,6 +480,67 @@ function renderBodyCharts(){
   charts.muscle=new Chart(ctx3,{type:'line',data:{labels,datasets:[{label:'Muscle Mass (lbs)',data:comps.map(c=>c.muscle),borderColor:'#22c55e',backgroundColor:makeGradient(ctx3,'#22c55e'),tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#22c55e',pointBorderColor:'#161b22',pointBorderWidth:2,borderWidth:2.5}]},options:baseOpts});
   const ctx4=document.getElementById('ffwChart').getContext('2d');
   charts.ffw=new Chart(ctx4,{type:'line',data:{labels,datasets:[{label:'Fat-Free Weight (lbs)',data:comps.map(c=>c.fatfree),borderColor:'#06b6d4',backgroundColor:makeGradient(ctx4,'#06b6d4'),tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#06b6d4',pointBorderColor:'#161b22',pointBorderWidth:2,borderWidth:2.5}]},options:baseOpts});
+  renderBodySummary();
+}
+
+function renderBodySummary(){
+  let el=document.getElementById('bodySummary');
+  if(comps.length<2){el.style.display='none';return;}
+  let c=comps[comps.length-1]; // latest
+  let prev=comps[comps.length-2];
+  let first=comps[0];
+  let days=Math.round((new Date(c.date+'T12:00:00')-new Date(first.date+'T12:00:00'))/(864e5));
+  let wDelta=(c.weight-first.weight).toFixed(1);
+  let bfDelta=(c.bf-first.bf).toFixed(1);
+  let mDelta=(c.muscle-first.muscle).toFixed(1);
+  let ffDelta=(c.fatfree-first.fatfree).toFixed(1);
+
+  let fatMass=(c.weight*c.bf/100).toFixed(1);
+  let leanRatio=(c.fatfree/c.weight*100).toFixed(1);
+
+  let h=[];
+  h.push(`<h3>📊 Body Composition Summary</h3>`);
+  h.push(`<div style="font-size:.875rem;line-height:1.8;color:var(--text2);margin-top:10px">`);
+
+  // Current snapshot
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--text)">Current (${shortDate(c.date)}):</strong> ${c.weight} lbs · ${c.bf}% body fat · ${c.muscle} lbs muscle · ${c.fatfree} lbs fat-free · BMI ${c.bmi} · Visceral fat ${c.visceral}</p>`);
+
+  // Changes over time
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">📈 ${days}-Day Trend:</strong> `);
+  h.push(`Weight <strong style="color:var(--text)">${wDelta>0?'+':''}${wDelta} lbs</strong> · `);
+  h.push(`Body fat <strong style="color:var(--text)">${bfDelta>0?'+':''}${bfDelta}%</strong> · `);
+  h.push(`Muscle <strong style="color:var(--text)">${mDelta>0?'+':''}${mDelta} lbs</strong> · `);
+  h.push(`Fat-free <strong style="color:var(--text)">${ffDelta>0?'+':''}${ffDelta} lbs</strong></p>`);
+
+  // Derived metrics
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">🔬 Breakdown:</strong> `);
+  h.push(`Estimated fat mass: <strong style="color:var(--text)">${fatMass} lbs</strong> · `);
+  h.push(`Lean body ratio: <strong style="color:var(--text)">${leanRatio}%</strong></p>`);
+
+  // Assessment
+  h.push(`<p style="margin-bottom:12px"><strong style="color:var(--accent)">📋 Assessment:</strong> `);
+  if(c.bf<15) h.push(`Body fat is in the <strong style="color:var(--green)">athletic range</strong> (<15%). Excellent conditioning. `);
+  else if(c.bf<20) h.push(`Body fat is in the <strong style="color:var(--text)">fitness range</strong> (15-20%). Solid foundation — room to lean out further with sustained training. `);
+  else if(c.bf<25) h.push(`Body fat is in the <strong style="color:var(--amber)">average range</strong> (20-25%). Plenty of room for recomposition with consistent training and nutrition. `);
+  else h.push(`Body fat is elevated (>25%). Focus on caloric deficit and progressive overload for body recomposition. `);
+
+  if(c.visceral<=12) h.push(`Visceral fat at ${c.visceral} is <strong style="color:var(--green)">within healthy range</strong> (≤12). `);
+  else h.push(`Visceral fat at ${c.visceral} is <strong style="color:var(--amber)">slightly elevated</strong> — cardio and reducing processed carbs will help bring this down. `);
+
+  if(parseFloat(mDelta)>0) h.push(`Muscle mass is <strong style="color:var(--green)">trending up</strong> — the training stimulus is working.`);
+  else if(parseFloat(mDelta)<0) h.push(`Muscle mass dipped slightly — ensure protein intake is 0.8-1g per lb bodyweight and recovery is adequate.`);
+  else h.push(`Muscle mass is holding steady.`);
+  h.push(`</p>`);
+
+  // Recommendations
+  h.push(`<p><strong style="color:var(--accent)">💡 Recommendations:</strong> `);
+  h.push(`Target protein: <strong style="color:var(--text)">${Math.round(c.weight*0.8)}–${Math.round(c.weight)}g/day</strong>. `);
+  if(c.bf>=18) h.push(`A modest deficit (300-500 cal) with strength training will preserve muscle while dropping fat. `);
+  else h.push(`At current body fat, focus on lean gains with a slight surplus (200-300 cal). `);
+  h.push(`Aim for 3-4 strength sessions/week alongside your running. Compound movements (squat, deadlift, bench, row) will drive the most recomp.`);
+  h.push(`</p></div>`);
+
+  el.innerHTML=h.join('');
 }
 
 let sortDir={};
