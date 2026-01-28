@@ -157,6 +157,7 @@ tbody tr:last-child td{border-bottom:none}
 <div class="card"><div class="card-icon">👟</div><div class="big" id="totalRuns">0</div><div class="label">Runs</div></div>
 </div>
 <div class="chart-box"><h3>Weekly Summary</h3><canvas id="weeklyChart"></canvas></div>
+<div id="progressSummary" class="chart-box"></div>
 </div>
 
 <div id="runlist" class="section">
@@ -347,6 +348,75 @@ function renderDash(){
   ]},options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:true,labels:{usePointStyle:true,pointStyle:'circle',padding:16,color:'#8b949e',font:{size:11}}}}}});
 }
 
+function renderProgressSummary(){
+  let el=document.getElementById('progressSummary');
+  let runs=workouts.filter(w=>w.type==='Run'&&w.hr&&w.pace).sort((a,b)=>a.date.localeCompare(b.date));
+  if(runs.length<2){el.style.display='none';return;}
+
+  let first=runs.slice(0,Math.ceil(runs.length/2));
+  let second=runs.slice(Math.ceil(runs.length/2));
+  let avgHR=arr=>Math.round(arr.reduce((s,r)=>s+r.hr,0)/arr.length);
+  let avgPace=arr=>{let p=arr.map(r=>paceToMin(r.pace)).filter(Boolean);return p.length?p.reduce((s,v)=>s+v,0)/p.length:null;};
+  let totalMi=workouts.filter(w=>w.type==='Run').reduce((s,w)=>s+(w.distance||0),0);
+  let totalWorkouts=workouts.length;
+  
+  let earlyHR=avgHR(first), lateHR=avgHR(second);
+  let earlyPace=avgPace(first), latePace=avgPace(second);
+  let hrDelta=earlyHR-lateHR;
+  let paceDelta=earlyPace&&latePace?(earlyPace-latePace):null;
+  
+  let longest=runs.reduce((a,b)=>(a.distance||0)>(b.distance||0)?a:b);
+  let firstDate=new Date(runs[0].date+'T12:00:00');
+  let lastDate=new Date(runs[runs.length-1].date+'T12:00:00');
+  let days=Math.round((lastDate-firstDate)/(1000*60*60*24));
+  
+  let lines=[];
+  lines.push(`<h3>📊 Progress Summary</h3>`);
+  lines.push(`<div style="font-size:.875rem;line-height:1.7;color:var(--text2);margin-top:8px">`);
+  lines.push(`<p style="margin-bottom:10px">Over <strong style="color:var(--text1)">${days} days</strong> and <strong style="color:var(--text1)">${totalWorkouts} workouts</strong> (${runs.length} runs, ${fmt(totalMi,1)} total miles), here's how you're progressing:</p>`);
+  
+  // HR conditioning
+  lines.push(`<p style="margin-bottom:10px"><strong style="color:var(--accent)">❤️ Heart Rate Conditioning:</strong> Early runs averaged <strong style="color:var(--text1)">${earlyHR} BPM</strong>, recent runs average <strong style="color:var(--text1)">${lateHR} BPM</strong>.`);
+  if(hrDelta>0){
+    lines.push(` That's a <strong style="color:#00c853">${hrDelta} BPM drop</strong> — your cardiovascular system is adapting. Lower HR at similar effort = stronger aerobic base.`);
+  } else if(hrDelta<0){
+    lines.push(` HR is up ${Math.abs(hrDelta)} BPM — likely pushing harder efforts or increasing distance. Keep monitoring.`);
+  }
+  lines.push(`</p>`);
+  
+  // Pace
+  if(paceDelta!==null){
+    lines.push(`<p style="margin-bottom:10px"><strong style="color:var(--accent)">⏱️ Pace:</strong> Early avg <strong style="color:var(--text1)">${Math.floor(earlyPace)}'${String(Math.round((earlyPace%1)*60)).padStart(2,'0')}"</strong>/mi → recent <strong style="color:var(--text1)">${Math.floor(latePace)}'${String(Math.round((latePace%1)*60)).padStart(2,'0')}"</strong>/mi.`);
+    if(paceDelta>0.1){
+      lines.push(` Pace improved by ~${Math.round(paceDelta*60)} seconds/mile. Solid progress.`);
+    } else if(paceDelta<-0.1){
+      lines.push(` Pace slowed ~${Math.round(Math.abs(paceDelta)*60)}s/mi — could be longer distances, smarter pacing, or more zone 2 work. Not necessarily bad.`);
+    } else {
+      lines.push(` Pace is holding steady — consistency is king.`);
+    }
+    lines.push(`</p>`);
+  }
+  
+  // Distance progression
+  lines.push(`<p style="margin-bottom:10px"><strong style="color:var(--accent)">📏 Distance:</strong> Longest run is <strong style="color:var(--text1)">${fmt(longest.distance,2)} mi</strong> (${shortDate(longest.date)}). `);
+  if(longest===runs[runs.length-1]||longest===runs[runs.length-2]){
+    lines.push(`Recent long run PR — distance is trending up. 💪`);
+  } else {
+    lines.push(`Building a solid mileage base.`);
+  }
+  lines.push(`</p>`);
+  
+  // Takeaway
+  if(hrDelta>5){
+    lines.push(`<p><strong style="color:#00c853">🏆 Key Takeaway:</strong> Heart rate is dropping while maintaining or improving pace — textbook aerobic adaptation. Keep it up.</p>`);
+  } else {
+    lines.push(`<p><strong style="color:var(--accent)">🏆 Key Takeaway:</strong> Consistency is building. Keep logging miles and the cardiovascular gains will compound.</p>`);
+  }
+  
+  lines.push(`</div>`);
+  el.innerHTML=lines.join('');
+}
+
 function renderRunList(){
   let runs=workouts.filter(w=>w.type==='Run').slice().reverse();
   let el=document.getElementById('runCards');
@@ -481,7 +551,7 @@ function addComp(){
 }
 
 // Init
-renderDash();renderLog();renderPRs();
+renderDash();renderProgressSummary();renderLog();renderPRs();
 // Lazy-load run/body charts only when tab visited
 </script>
 </body>
