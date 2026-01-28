@@ -163,6 +163,7 @@ function show(id){
 function paceToMin(p){if(!p)return null;let m=p.match(/(\d+)'(\d+)/);return m?+m[1]+ +m[2]/60:null;}
 function fmt(n,d=1){return n!=null?n.toFixed(d):'-';}
 function shortDate(d){let dt=new Date(d+'T12:00:00');return(dt.getMonth()+1)+'/'+dt.getDate();}
+function weekLabel(monStr){let m=new Date(monStr+'T12:00:00');let s=new Date(m);s.setDate(m.getDate()+6);return(m.getMonth()+1)+'/'+m.getDate()+'–'+(s.getMonth()+1)+'/'+s.getDate();}
 
 // Dashboard
 function renderDash(){
@@ -187,7 +188,7 @@ function renderDash(){
     weeks[key].cnt++;
   });
   let wks=Object.keys(weeks).sort();
-  new Chart(document.getElementById('weeklyChart'),{type:'bar',data:{labels:wks.map(k=>'Wk '+shortDate(k)),datasets:[{label:'Miles',data:wks.map(k=>weeks[k].mi),backgroundColor:'#e94560'},{label:'Workouts',data:wks.map(k=>weeks[k].cnt),backgroundColor:'#0f3460'}]},options:chartOpts('Weekly')});
+  new Chart(document.getElementById('weeklyChart'),{type:'bar',data:{labels:wks.map(k=>weekLabel(k)),datasets:[{label:'Miles',data:wks.map(k=>weeks[k].mi),backgroundColor:'#e94560'},{label:'Workouts',data:wks.map(k=>weeks[k].cnt),backgroundColor:'#0f3460'}]},options:chartOpts('Weekly')});
 }
 
 const chartOpts=(t)=>({responsive:true,plugins:{legend:{labels:{color:'#eee'}},title:{display:false}},scales:{x:{ticks:{color:'#888'},grid:{color:'#ffffff10'}},y:{ticks:{color:'#888'},grid:{color:'#ffffff10'}}}});
