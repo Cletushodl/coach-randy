@@ -148,6 +148,7 @@ tbody tr:last-child td{border-bottom:none}
 <button data-tab="log">Workout Log</button>
 <button data-tab="add">Add Workout</button>
 <button data-tab="addcomp">Add Body Comp</button>
+<button data-tab="overlay">Overlay</button>
 <button data-tab="stats">Stats / PRs</button>
 </div>
 
@@ -236,6 +237,36 @@ tbody tr:last-child td{border-bottom:none}
 <div class="form-group"><label>Visceral Fat</label><input type="number" id="cVisceral" placeholder="12"></div>
 </div>
 <button class="btn" onclick="addComp()">Save Body Comp</button>
+</div>
+
+<div id="overlay" class="section">
+<div class="section-title">🔀 Overlay Charts</div>
+<p style="font-size:.8125rem;color:var(--text2);margin-bottom:16px">Pick one metric from each category to see them side by side on a shared timeline.</p>
+<div class="form-grid" style="margin-bottom:20px">
+<div class="form-group">
+<label>Run Metric</label>
+<select id="ovRun">
+<option value="pace">Pace (min/mi)</option>
+<option value="hr">Avg Heart Rate</option>
+<option value="distance">Distance (mi)</option>
+<option value="cadence">Cadence (SPM)</option>
+<option value="calories">Calories</option>
+</select>
+</div>
+<div class="form-group">
+<label>Body Comp Metric</label>
+<select id="ovBody">
+<option value="weight">Weight (lbs)</option>
+<option value="bf">Body Fat %</option>
+<option value="muscle">Muscle Mass (lbs)</option>
+<option value="fatfree">Fat-Free Weight (lbs)</option>
+<option value="bmi">BMI</option>
+<option value="visceral">Visceral Fat</option>
+</select>
+</div>
+</div>
+<button class="btn" onclick="renderOverlay()" style="max-width:300px;margin-bottom:24px">Generate Overlay</button>
+<div class="chart-box" id="overlayChartBox" style="display:none"><h3 id="overlayTitle"></h3><canvas id="overlayChart" style="max-height:320px"></canvas></div>
 </div>
 
 <div id="stats" class="section">
@@ -678,6 +709,83 @@ function renderPRs(){
   let totalMi=workouts.reduce((s,w)=>s+(w.distance||0),0);
   html+=`<div class="pr-item"><div class="pr-icon">🗺️</div><div class="pr-content"><div class="val">${fmt(totalMi,1)} mi</div><div class="desc">Total Mileage — All Time</div></div></div>`;
   document.getElementById('prList').innerHTML=html;
+}
+
+function renderOverlay(){
+  let runKey=document.getElementById('ovRun').value;
+  let bodyKey=document.getElementById('ovBody').value;
+  let runs=workouts.filter(w=>w.type==='Run').sort((a,b)=>a.date.localeCompare(b.date));
+  let compsS=comps.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!runs.length||!compsS.length){showToast('Need both run and body comp data');return;}
+
+  // Build unified timeline
+  let allDates=new Set();
+  runs.forEach(r=>allDates.add(r.date));
+  compsS.forEach(c=>allDates.add(c.date));
+  let timeline=[...allDates].sort();
+  let labels=timeline.map(d=>shortDate(d));
+
+  // Map run data
+  let runMap={};
+  let runLabels={pace:'Pace (min/mi)',hr:'Avg HR (BPM)',distance:'Distance (mi)',cadence:'Cadence (SPM)',calories:'Calories'};
+  let runColors={pace:'#06b6d4',hr:'#ef4444',distance:'#10b981',cadence:'#f59e0b',calories:'#ec4899'};
+  runs.forEach(r=>{
+    let val=null;
+    if(runKey==='pace')val=paceToMin(r.pace);
+    else if(runKey==='hr')val=r.hr;
+    else if(runKey==='distance')val=r.distance;
+    else if(runKey==='cadence')val=r.cadence;
+    else if(runKey==='calories')val=r.calories;
+    runMap[r.date]=val;
+  });
+
+  // Map body data
+  let bodyMap={};
+  let bodyLabels={weight:'Weight (lbs)',bf:'Body Fat %',muscle:'Muscle Mass (lbs)',fatfree:'Fat-Free Weight (lbs)',bmi:'BMI',visceral:'Visceral Fat'};
+  let bodyColors={weight:'#ec4899',bf:'#f59e0b',muscle:'#22c55e',fatfree:'#06b6d4',bmi:'#a78bfa',visceral:'#f87171'};
+  compsS.forEach(c=>{
+    let val=null;
+    if(bodyKey==='weight')val=c.weight;
+    else if(bodyKey==='bf')val=c.bf;
+    else if(bodyKey==='muscle')val=c.muscle;
+    else if(bodyKey==='fatfree')val=c.fatfree;
+    else if(bodyKey==='bmi')val=c.bmi;
+    else if(bodyKey==='visceral')val=c.visceral;
+    bodyMap[c.date]=val;
+  });
+
+  let runData=timeline.map(d=>runMap[d]!=null?runMap[d]:null);
+  let bodyData=timeline.map(d=>bodyMap[d]!=null?bodyMap[d]:null);
+
+  document.getElementById('overlayChartBox').style.display='block';
+  document.getElementById('overlayTitle').textContent=runLabels[runKey]+' vs '+bodyLabels[bodyKey];
+
+  if(charts.overlay)charts.overlay.destroy();
+  const ctx=document.getElementById('overlayChart').getContext('2d');
+  charts.overlay=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:runLabels[runKey],data:runData,borderColor:runColors[runKey],backgroundColor:runColors[runKey]+'33',tension:.4,fill:false,pointRadius:5,pointBackgroundColor:runColors[runKey],pointBorderColor:'#000',pointBorderWidth:2,borderWidth:2.5,yAxisID:'y',spanGaps:true},
+        {label:bodyLabels[bodyKey],data:bodyData,borderColor:bodyColors[bodyKey],backgroundColor:bodyColors[bodyKey]+'33',tension:.4,fill:false,pointRadius:5,pointBackgroundColor:bodyColors[bodyKey],pointBorderColor:'#000',pointBorderWidth:2,borderWidth:2.5,yAxisID:'y1',spanGaps:true}
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      interaction:{intersect:false,mode:'index'},
+      plugins:{
+        legend:{display:true,labels:{usePointStyle:true,pointStyle:'circle',padding:16,color:'#86868b',font:{size:12}}},
+        tooltip:{backgroundColor:'#1c1c1e',borderColor:'#38383a',borderWidth:1,titleColor:'#f5f5f7',bodyColor:'#86868b',cornerRadius:8,padding:12}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{maxRotation:0,autoSkipPadding:12,color:'#86868b'}},
+        y:{type:'linear',position:'left',grid:{color:'rgba(56,56,58,.3)',drawBorder:false},ticks:{color:runColors[runKey],padding:8},title:{display:true,text:runLabels[runKey],color:runColors[runKey],font:{size:11}}},
+        y1:{type:'linear',position:'right',grid:{drawOnChartArea:false},ticks:{color:bodyColors[bodyKey],padding:8},title:{display:true,text:bodyLabels[bodyKey],color:bodyColors[bodyKey],font:{size:11}}}
+      }
+    }
+  });
 }
 
 function addWorkout(){
