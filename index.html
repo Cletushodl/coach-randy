@@ -369,7 +369,7 @@ function makeGradient(ctx,color){
 
 function renderDash(){
   let runs=workouts.filter(w=>w.type==='Run');
-  let totalMi=workouts.reduce((s,w)=>s+(w.distance||0),0);
+  let totalMi=runs.reduce((s,w)=>s+(w.distance||0),0);
   let totalCal=workouts.reduce((s,w)=>s+(w.calories||0),0);
   document.getElementById('totalMiles').textContent=fmt(totalMi,1);
   document.getElementById('totalWorkouts').textContent=workouts.length;
@@ -383,7 +383,7 @@ function renderDash(){
     let mon=new Date(d);mon.setDate(d.getDate()-day);
     let key=mon.toISOString().slice(0,10);
     if(!weeks[key])weeks[key]={mi:0,cal:0,cnt:0};
-    weeks[key].mi+=w.distance||0;
+    weeks[key].mi+=w.type==='Run'?(w.distance||0):0;
     weeks[key].cal+=w.calories||0;
     weeks[key].cnt++;
   });
