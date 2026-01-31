@@ -305,7 +305,7 @@ const SEED_COMP=[
 {date:"2026-01-31",weight:227.2,bmi:31.1,bf:18.3,muscle:176.4,skeletal:52.8,fatfree:185.6,visceral:13}
 ];
 
-const DATA_VERSION='v3';
+const DATA_VERSION='v4';
 function load(key,seed){
   if(localStorage.getItem('cr_version')!==DATA_VERSION){
     localStorage.removeItem('cr_workouts');
@@ -695,7 +695,7 @@ function renderAll(){renderDash();renderProgressSummary();renderLog();renderPRs(
 function deleteWorkout(date,type){
   if(!confirm(`Delete ${type} on ${date}?`))return;
   let idx=workouts.findIndex(w=>w.date===date&&w.type===type);
-  if(idx>-1){workouts.splice(idx,1);save('cr_workouts',workouts);renderAll();}
+  if(idx>-1){workouts.splice(idx,1);localStorage.setItem('cr_workouts',JSON.stringify(workouts));renderAll();}
 }
 function renderLog(){
   let tb=document.querySelector('#logTable tbody');
