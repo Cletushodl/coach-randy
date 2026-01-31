@@ -202,6 +202,7 @@ tbody tr:last-child td{border-bottom:none}
 <th data-col="cadence">SPM <span class="sort-indicator">▲▼</span></th>
 <th data-col="calories">Cal <span class="sort-indicator">▲▼</span></th>
 <th data-col="elevation">Elev <span class="sort-indicator">▲▼</span></th>
+<th style="width:40px"></th>
 </tr></thead>
 <tbody></tbody>
 </table>
@@ -690,10 +691,16 @@ function typeBadge(t){
   const cls=t==='Run'?'run':t==='Strength'?'strength':'cycle';
   return `<span class="type-badge ${cls}">${t}</span>`;
 }
+function renderAll(){renderDash();renderProgressSummary();renderLog();renderPRs();}
+function deleteWorkout(date,type){
+  if(!confirm(`Delete ${type} on ${date}?`))return;
+  let idx=workouts.findIndex(w=>w.date===date&&w.type===type);
+  if(idx>-1){workouts.splice(idx,1);save('cr_workouts',workouts);renderAll();}
+}
 function renderLog(){
   let tb=document.querySelector('#logTable tbody');
   let sorted=workouts.slice().reverse();
-  tb.innerHTML=sorted.map(w=>`<tr><td>${shortDate(w.date)}</td><td>${typeBadge(w.type)}</td><td>${w.duration}</td><td>${w.distance!=null?fmt(w.distance,2):'-'}</td><td>${w.pace||'-'}</td><td>${w.hr||'-'}</td><td>${w.cadence||'-'}</td><td>${w.calories||'-'}</td><td>${w.elevation!=null?w.elevation+'ft':'-'}</td></tr>`).join('');
+  tb.innerHTML=sorted.map(w=>`<tr><td>${shortDate(w.date)}</td><td>${typeBadge(w.type)}</td><td>${w.duration}</td><td>${w.distance!=null?fmt(w.distance,2):'-'}</td><td>${w.pace||'-'}</td><td>${w.hr||'-'}</td><td>${w.cadence||'-'}</td><td>${w.calories||'-'}</td><td>${w.elevation!=null?w.elevation+'ft':'-'}</td><td><button onclick="deleteWorkout('${w.date}','${w.type}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px 8px;opacity:.5;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" title="Delete">✕</button></td></tr>`).join('');
 }
 document.querySelectorAll('#logTable th').forEach(th=>{
   th.addEventListener('click',()=>{
