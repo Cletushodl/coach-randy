@@ -727,8 +727,8 @@ document.getElementById('nav').addEventListener('click',e=>{
   sec.classList.add('active');
   e.target.classList.add('active');
   if(tab==='runlist')renderRunList();
-  if(tab==='runs'&&!charts.pace)renderRunCharts();
-  if(tab==='body'&&!charts.weight)renderBodyCharts();
+  if(tab==='runs')renderRunCharts();
+  if(tab==='body')renderBodyCharts();
 });
 
 function paceToMin(p){if(!p)return null;let m=p.match(/(\d+)'(\d+)/);return m?+m[1]+ +m[2]/60:null;}
@@ -873,6 +873,10 @@ function renderRunList(){
 function renderRunCharts(){
   let runs=workouts.filter(w=>w.type==='Run');
   if(!runs.length)return;
+  if(charts.pace)charts.pace.destroy();
+  if(charts.hr)charts.hr.destroy();
+  if(charts.dist)charts.dist.destroy();
+  if(charts.cad)charts.cad.destroy();
   let labels=runs.map(r=>shortDate(r.date));
   function line(id,data,color,label){
     const ctx=document.getElementById(id).getContext('2d');
@@ -985,6 +989,10 @@ function bodyLine(ctx,id,labels,data,color,label){
 
 function renderBodyCharts(){
   if(!comps.length)return;
+  if(charts.weight)charts.weight.destroy();
+  if(charts.bf)charts.bf.destroy();
+  if(charts.muscle)charts.muscle.destroy();
+  if(charts.ffw)charts.ffw.destroy();
   let labels=comps.map(c=>shortDate(c.date));
   const ctx1=document.getElementById('weightChart').getContext('2d');
   charts.weight=bodyLine(ctx1,'weightChart',labels,comps.map(c=>c.weight),'#f472b6','Weight (lbs)');
