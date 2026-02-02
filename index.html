@@ -1187,7 +1187,7 @@ function addWorkout(){
   workouts.sort((a,b)=>a.date.localeCompare(b.date));
   localStorage.setItem('cr_workouts',JSON.stringify(workouts));
   showToast('Workout saved!');
-  renderLog();renderDash();renderPRs();
+  renderLog();renderDash();renderProgressSummary();renderPRs();
   ['wDate','wDuration','wDist','wPace','wHR','wCad','wCal','wElev','wMaxHR'].forEach(id=>document.getElementById(id).value='');
 }
 
