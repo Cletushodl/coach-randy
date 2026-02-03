@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -486,6 +487,131 @@ tbody tr:last-child td{border-bottom:none}
 .footer p{font-size:.75rem;color:var(--text3);font-weight:400;letter-spacing:.04em}
 .footer span{color:var(--accent);font-weight:600}
 
+/* Auth Overlay */
+.auth-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(9,9,11,.97);
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.auth-overlay.hidden{display:none}
+.auth-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:40px;
+  width:100%;
+  max-width:400px;
+  margin:20px;
+  box-shadow:var(--shadow-card);
+}
+.auth-box h2{
+  font-family:var(--font-display);
+  font-size:1.8rem;
+  font-weight:700;
+  margin-bottom:8px;
+  font-style:italic;
+  text-align:center;
+}
+.auth-box h2 .gold{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.auth-box .subtitle{
+  text-align:center;
+  color:var(--text2);
+  font-size:.85rem;
+  margin-bottom:28px;
+}
+.auth-box .form-group{margin-bottom:16px}
+.auth-box .form-group input{
+  width:100%;
+  padding:14px 16px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  font-size:.875rem;
+  font-family:var(--font-body);
+  transition:all .25s ease;
+  outline:none;
+}
+.auth-box .form-group input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-glow);
+}
+.auth-box .btn{margin-top:8px}
+.auth-toggle{
+  text-align:center;
+  margin-top:20px;
+  font-size:.85rem;
+  color:var(--text2);
+}
+.auth-toggle a{
+  color:var(--accent);
+  cursor:pointer;
+  text-decoration:none;
+  font-weight:500;
+}
+.auth-toggle a:hover{text-decoration:underline}
+.auth-error{
+  background:var(--red-dim);
+  border:1px solid var(--red);
+  color:var(--red);
+  padding:12px 16px;
+  border-radius:var(--radius-sm);
+  font-size:.8rem;
+  margin-bottom:16px;
+  display:none;
+}
+.auth-error.show{display:block}
+.auth-loading{
+  text-align:center;
+  padding:20px;
+  color:var(--text2);
+}
+.logout-btn{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text2);
+  padding:6px 14px;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:.7rem;
+  font-weight:500;
+  font-family:var(--font-body);
+  transition:all .25s ease;
+  margin-left:auto;
+}
+.logout-btn:hover{
+  border-color:var(--red);
+  color:var(--red);
+  background:var(--red-dim);
+}
+.sync-indicator{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:.7rem;
+  color:var(--text3);
+  margin-left:12px;
+}
+.sync-indicator.online{color:var(--green)}
+.sync-indicator.offline{color:var(--amber)}
+.sync-indicator .dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -529,6 +655,8 @@ tbody tr:last-child td{border-bottom:none}
 
 <div class="nav" id="nav">
 <button class="active" data-tab="dashboard">Dashboard</button>
+<span class="sync-indicator" id="syncIndicator"><span class="dot"></span><span id="syncText">Checking...</span></span>
+<button class="logout-btn" id="logoutBtn" style="display:none">Logout</button>
 <button data-tab="runlist">All Runs</button>
 <button data-tab="runs">Run Trends</button>
 <button data-tab="body">Body Comp</button>
@@ -599,7 +727,7 @@ tbody tr:last-child td{border-bottom:none}
 <div id="add" class="section">
 <div class="section-title">➕ Add Workout</div>
 <div class="form-grid">
-<div class="form-group"><label>Type</label><select id="wType"><option value="Run">Run</option><option value="Strength">Strength</option><option value="Indoor Cycle">Indoor Cycle</option></select></div>
+<div class="form-group"><label>Type</label><select id="wType"><option value="Run">Run</option><option value="Strength">Strength</option><option value="Indoor Cycle">Indoor Cycle</option><option value="Stair Climber">Stair Climber</option></select></div>
 <div class="form-group"><label>Date</label><input type="date" id="wDate"></div>
 <div class="form-group"><label>Duration (mm:ss)</label><input id="wDuration" placeholder="31:44"></div>
 <div class="form-group"><label>Distance (mi)</label><input type="number" step="0.01" id="wDist" placeholder="0.00"></div>
@@ -668,7 +796,60 @@ tbody tr:last-child td{border-bottom:none}
 <!-- Toast -->
 <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span id="toastMsg">Saved!</span></div>
 
+<!-- Auth Overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h2>🏋️ <span class="gold">Coach Randy</span></h2>
+    <p class="subtitle">Sign in to sync across devices</p>
+    <div class="auth-error" id="authError"></div>
+    <div id="authForm">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••">
+      </div>
+      <button class="btn" id="authSubmit">Sign In</button>
+      <p class="auth-toggle">
+        <span id="authToggleText">Don't have an account?</span>
+        <a id="authToggleLink">Sign Up</a>
+      </p>
+      <p class="auth-toggle" style="margin-top:12px">
+        <a id="skipAuth" style="color:var(--text3)">Continue without account (local only)</a>
+      </p>
+    </div>
+    <div class="auth-loading" id="authLoading" style="display:none">
+      <p>Loading...</p>
+    </div>
+  </div>
+</div>
+
 <script>
+// ========================================
+// SUPABASE CONFIGURATION
+// ========================================
+// Replace these with your Supabase project credentials:
+const SUPABASE_URL = 'https://ppujscfvedvtonouzfxy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdWpzY2Z2ZWR2dG9ub3V6Znh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODk5NDEsImV4cCI6MjA4NTY2NTk0MX0.SrWgamnJAVXgvpMeZ_2ycqoHrEinvirpYuWMB3A5SNk';
+
+// Initialize Supabase client
+let supabase = null;
+let currentUser = null;
+let isOnline = navigator.onLine;
+
+try {
+  if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) {
+  console.warn('Supabase initialization failed:', e);
+}
+
+// ========================================
+// SEED DATA
+// ========================================
 const SEED_WORKOUTS=[
 {date:"2026-01-16",type:"Run",duration:"31:44",distance:2.50,pace:"12'39\"",hr:164,cadence:133,calories:365,elevation:94},
 {date:"2026-01-19",type:"Run",duration:"41:00",distance:3.52,pace:"11'39\"",hr:172,cadence:151,calories:388,elevation:27},
@@ -693,8 +874,16 @@ const SEED_COMP=[
 {date:"2026-01-31",weight:227.2,bmi:31.1,bf:18.3,muscle:176.4,skeletal:52.8,fatfree:185.6,visceral:13}
 ];
 
-const DATA_VERSION='v4';
-function load(key,seed){
+// ========================================
+// DATA MANAGEMENT
+// ========================================
+const DATA_VERSION='v5';
+let workouts = [];
+let comps = [];
+let charts = {};
+
+// Load from localStorage (fallback/offline mode)
+function loadFromLocalStorage(key, seed) {
   if(localStorage.getItem('cr_version')!==DATA_VERSION){
     localStorage.removeItem('cr_workouts');
     localStorage.removeItem('cr_comps');
@@ -707,9 +896,386 @@ function load(key,seed){
   localStorage.setItem(key,JSON.stringify(stored));
   return stored;
 }
-let workouts=load('cr_workouts',SEED_WORKOUTS);
-let comps=load('cr_comps',SEED_COMP);
-let charts={};
+
+// Save to localStorage
+function saveToLocalStorage() {
+  localStorage.setItem('cr_workouts', JSON.stringify(workouts));
+  localStorage.setItem('cr_comps', JSON.stringify(comps));
+}
+
+// ========================================
+// SUPABASE DATA FUNCTIONS
+// ========================================
+async function fetchWorkoutsFromSupabase() {
+  if (!supabase || !currentUser) return null;
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('date', { ascending: true });
+    if (error) throw error;
+    return data.map(w => ({
+      date: w.date,
+      type: w.type,
+      duration: w.duration,
+      distance: w.distance,
+      pace: w.pace,
+      hr: w.hr,
+      cadence: w.cadence,
+      calories: w.calories,
+      elevation: w.elevation,
+      maxHR: w.max_hr,
+      id: w.id
+    }));
+  } catch (e) {
+    console.error('Error fetching workouts:', e);
+    return null;
+  }
+}
+
+async function fetchCompsFromSupabase() {
+  if (!supabase || !currentUser) return null;
+  try {
+    const { data, error } = await supabase
+      .from('body_comps')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('date', { ascending: true });
+    if (error) throw error;
+    return data.map(c => ({
+      date: c.date,
+      weight: c.weight,
+      bmi: c.bmi,
+      bf: c.bf,
+      muscle: c.muscle,
+      skeletal: c.skeletal,
+      fatfree: c.fatfree,
+      visceral: c.visceral,
+      id: c.id
+    }));
+  } catch (e) {
+    console.error('Error fetching body comps:', e);
+    return null;
+  }
+}
+
+async function insertWorkoutToSupabase(workout) {
+  if (!supabase || !currentUser) return null;
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .insert({
+        user_id: currentUser.id,
+        date: workout.date,
+        type: workout.type,
+        duration: workout.duration,
+        distance: workout.distance,
+        pace: workout.pace,
+        hr: workout.hr,
+        cadence: workout.cadence,
+        calories: workout.calories,
+        elevation: workout.elevation,
+        max_hr: workout.maxHR
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data.id;
+  } catch (e) {
+    console.error('Error inserting workout:', e);
+    return null;
+  }
+}
+
+async function insertCompToSupabase(comp) {
+  if (!supabase || !currentUser) return null;
+  try {
+    const { data, error } = await supabase
+      .from('body_comps')
+      .insert({
+        user_id: currentUser.id,
+        date: comp.date,
+        weight: comp.weight,
+        bmi: comp.bmi,
+        bf: comp.bf,
+        muscle: comp.muscle,
+        skeletal: comp.skeletal,
+        fatfree: comp.fatfree,
+        visceral: comp.visceral
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data.id;
+  } catch (e) {
+    console.error('Error inserting body comp:', e);
+    return null;
+  }
+}
+
+async function deleteWorkoutFromSupabase(workoutId) {
+  if (!supabase || !currentUser || !workoutId) return false;
+  try {
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', workoutId)
+      .eq('user_id', currentUser.id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Error deleting workout:', e);
+    return false;
+  }
+}
+
+async function seedDataToSupabase() {
+  if (!supabase || !currentUser) return;
+
+  // Check if user already has data
+  const existingWorkouts = await fetchWorkoutsFromSupabase();
+  if (existingWorkouts && existingWorkouts.length > 0) return;
+
+  // Insert seed workouts
+  for (const w of SEED_WORKOUTS) {
+    await insertWorkoutToSupabase(w);
+  }
+
+  // Insert seed body comps
+  for (const c of SEED_COMP) {
+    await insertCompToSupabase(c);
+  }
+}
+
+// ========================================
+// AUTH FUNCTIONS
+// ========================================
+async function signUp(email, password) {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signIn(email, password) {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signOut() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+  currentUser = null;
+  updateSyncIndicator();
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('authOverlay').classList.remove('hidden');
+}
+
+async function checkSession() {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
+}
+
+// ========================================
+// UI HELPERS
+// ========================================
+function updateSyncIndicator() {
+  const indicator = document.getElementById('syncIndicator');
+  const text = document.getElementById('syncText');
+
+  if (!supabase || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    indicator.className = 'sync-indicator offline';
+    text.textContent = 'Local Only';
+  } else if (!currentUser) {
+    indicator.className = 'sync-indicator offline';
+    text.textContent = 'Not Signed In';
+  } else if (!isOnline) {
+    indicator.className = 'sync-indicator offline';
+    text.textContent = 'Offline';
+  } else {
+    indicator.className = 'sync-indicator online';
+    text.textContent = 'Synced';
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideAuthError() {
+  document.getElementById('authError').classList.remove('show');
+}
+
+// ========================================
+// INITIALIZATION
+// ========================================
+async function initApp() {
+  // Check for existing session
+  if (supabase) {
+    const session = await checkSession();
+    if (session) {
+      currentUser = session.user;
+      document.getElementById('authOverlay').classList.add('hidden');
+      document.getElementById('logoutBtn').style.display = 'block';
+
+      // Load from Supabase
+      const supaWorkouts = await fetchWorkoutsFromSupabase();
+      const supaComps = await fetchCompsFromSupabase();
+
+      if (supaWorkouts !== null) {
+        workouts = supaWorkouts;
+        saveToLocalStorage();
+      } else {
+        workouts = loadFromLocalStorage('cr_workouts', SEED_WORKOUTS);
+      }
+
+      if (supaComps !== null) {
+        comps = supaComps;
+        saveToLocalStorage();
+      } else {
+        comps = loadFromLocalStorage('cr_comps', SEED_COMP);
+      }
+    } else {
+      // No session, show auth overlay
+      document.getElementById('authOverlay').classList.remove('hidden');
+      workouts = loadFromLocalStorage('cr_workouts', SEED_WORKOUTS);
+      comps = loadFromLocalStorage('cr_comps', SEED_COMP);
+    }
+  } else {
+    // Supabase not configured, use local storage only
+    document.getElementById('authOverlay').classList.add('hidden');
+    workouts = loadFromLocalStorage('cr_workouts', SEED_WORKOUTS);
+    comps = loadFromLocalStorage('cr_comps', SEED_COMP);
+  }
+
+  updateSyncIndicator();
+  renderDash();
+  renderProgressSummary();
+  renderLog();
+  renderPRs();
+}
+
+// Auth form handling
+let isSignUp = false;
+
+document.getElementById('authToggleLink').addEventListener('click', () => {
+  isSignUp = !isSignUp;
+  document.getElementById('authSubmit').textContent = isSignUp ? 'Sign Up' : 'Sign In';
+  document.getElementById('authToggleText').textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+  document.getElementById('authToggleLink').textContent = isSignUp ? 'Sign In' : 'Sign Up';
+  hideAuthError();
+});
+
+document.getElementById('authSubmit').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+
+  if (!email || !password) {
+    showAuthError('Please enter email and password');
+    return;
+  }
+
+  if (password.length < 6) {
+    showAuthError('Password must be at least 6 characters');
+    return;
+  }
+
+  hideAuthError();
+  document.getElementById('authForm').style.display = 'none';
+  document.getElementById('authLoading').style.display = 'block';
+
+  try {
+    if (isSignUp) {
+      const data = await signUp(email, password);
+      if (data.user && !data.session) {
+        // Email confirmation required
+        document.getElementById('authLoading').innerHTML = '<p style="color:var(--green)">Check your email to confirm your account!</p>';
+        setTimeout(() => {
+          document.getElementById('authForm').style.display = 'block';
+          document.getElementById('authLoading').style.display = 'none';
+          document.getElementById('authLoading').innerHTML = '<p>Loading...</p>';
+        }, 3000);
+        return;
+      }
+      currentUser = data.user;
+    } else {
+      const data = await signIn(email, password);
+      currentUser = data.user;
+    }
+
+    document.getElementById('authOverlay').classList.add('hidden');
+    document.getElementById('logoutBtn').style.display = 'block';
+
+    // Seed data for new users, then load
+    await seedDataToSupabase();
+
+    const supaWorkouts = await fetchWorkoutsFromSupabase();
+    const supaComps = await fetchCompsFromSupabase();
+
+    if (supaWorkouts !== null) {
+      workouts = supaWorkouts;
+      saveToLocalStorage();
+    }
+
+    if (supaComps !== null) {
+      comps = supaComps;
+      saveToLocalStorage();
+    }
+
+    updateSyncIndicator();
+    renderAll();
+    showToast('Signed in successfully!');
+
+  } catch (e) {
+    document.getElementById('authForm').style.display = 'block';
+    document.getElementById('authLoading').style.display = 'none';
+    showAuthError(e.message || 'Authentication failed');
+  }
+});
+
+document.getElementById('skipAuth').addEventListener('click', () => {
+  document.getElementById('authOverlay').classList.add('hidden');
+  updateSyncIndicator();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', signOut);
+
+// Handle Enter key in auth form
+document.getElementById('authEmail').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('authPassword').focus();
+});
+document.getElementById('authPassword').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('authSubmit').click();
+});
+
+// Online/offline detection
+window.addEventListener('online', () => {
+  isOnline = true;
+  updateSyncIndicator();
+});
+window.addEventListener('offline', () => {
+  isOnline = false;
+  updateSyncIndicator();
+});
+
+// Listen for auth state changes
+if (supabase) {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      updateSyncIndicator();
+    } else if (session) {
+      currentUser = session.user;
+      updateSyncIndicator();
+    }
+  });
+}
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -1061,15 +1627,30 @@ function typeBadge(t){
   return `<span class="type-badge ${cls}">${t}</span>`;
 }
 function renderAll(){renderDash();renderProgressSummary();renderLog();renderPRs();}
-function deleteWorkout(date,type){
+async function deleteWorkout(date, type, workoutId) {
   if(!confirm(`Delete ${type} on ${date}?`))return;
-  let idx=workouts.findIndex(w=>w.date===date&&w.type===type);
-  if(idx>-1){workouts.splice(idx,1);localStorage.setItem('cr_workouts',JSON.stringify(workouts));renderAll();}
+
+  // Delete from Supabase first
+  if (currentUser && workoutId) {
+    const success = await deleteWorkoutFromSupabase(workoutId);
+    if (!success && isOnline) {
+      showToast('Failed to delete from cloud');
+    }
+  }
+
+  // Delete from local array
+  let idx = workouts.findIndex(w => w.date === date && w.type === type);
+  if(idx > -1) {
+    workouts.splice(idx, 1);
+    saveToLocalStorage();
+    renderAll();
+    showToast('Workout deleted');
+  }
 }
 function renderLog(){
   let tb=document.querySelector('#logTable tbody');
   let sorted=workouts.slice().reverse();
-  tb.innerHTML=sorted.map(w=>`<tr><td>${shortDate(w.date)}</td><td>${typeBadge(w.type)}</td><td>${w.duration}</td><td>${w.distance!=null?fmt(w.distance,2):'-'}</td><td>${w.pace||'-'}</td><td>${w.hr||'-'}</td><td>${w.cadence||'-'}</td><td>${w.calories||'-'}</td><td>${w.elevation!=null?w.elevation+'ft':'-'}</td><td><button onclick="deleteWorkout('${w.date}','${w.type}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px 8px;opacity:.4;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4" title="Delete">✕</button></td></tr>`).join('');
+  tb.innerHTML=sorted.map(w=>`<tr><td>${shortDate(w.date)}</td><td>${typeBadge(w.type)}</td><td>${w.duration}</td><td>${w.distance!=null?fmt(w.distance,2):'-'}</td><td>${w.pace||'-'}</td><td>${w.hr||'-'}</td><td>${w.cadence||'-'}</td><td>${w.calories||'-'}</td><td>${w.elevation!=null?w.elevation+'ft':'-'}</td><td><button onclick="deleteWorkout('${w.date}','${w.type}'${w.id ? ",'" + w.id + "'" : ',null'})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px 8px;opacity:.4;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4" title="Delete">✕</button></td></tr>`).join('');
 }
 document.querySelectorAll('#logTable th').forEach(th=>{
   th.addEventListener('click',()=>{
@@ -1180,7 +1761,7 @@ function renderOverlay(){
   });
 }
 
-function addWorkout(){
+async function addWorkout(){
   let w={
     date:document.getElementById('wDate').value,
     type:document.getElementById('wType').value,
@@ -1194,15 +1775,24 @@ function addWorkout(){
     maxHR:parseInt(document.getElementById('wMaxHR').value)||null
   };
   if(!w.date||!w.duration){showToast('⚠️ Date and duration required');return;}
+
+  // Insert to Supabase first
+  if (currentUser && isOnline) {
+    const id = await insertWorkoutToSupabase(w);
+    if (id) {
+      w.id = id;
+    }
+  }
+
   workouts.push(w);
   workouts.sort((a,b)=>a.date.localeCompare(b.date));
-  localStorage.setItem('cr_workouts',JSON.stringify(workouts));
+  saveToLocalStorage();
   showToast('Workout saved!');
   renderLog();renderDash();renderProgressSummary();renderPRs();
   ['wDate','wDuration','wDist','wPace','wHR','wCad','wCal','wElev','wMaxHR'].forEach(id=>document.getElementById(id).value='');
 }
 
-function addComp(){
+async function addComp(){
   let c={
     date:document.getElementById('cDate').value,
     weight:parseFloat(document.getElementById('cWeight').value)||null,
@@ -1214,15 +1804,24 @@ function addComp(){
     visceral:parseInt(document.getElementById('cVisceral').value)||null
   };
   if(!c.date){showToast('⚠️ Date required');return;}
+
+  // Insert to Supabase first
+  if (currentUser && isOnline) {
+    const id = await insertCompToSupabase(c);
+    if (id) {
+      c.id = id;
+    }
+  }
+
   comps.push(c);
   comps.sort((a,b)=>a.date.localeCompare(b.date));
-  localStorage.setItem('cr_comps',JSON.stringify(comps));
+  saveToLocalStorage();
   showToast('Body comp saved!');
   ['cDate','cWeight','cBMI','cBF','cMuscle','cSkeletal','cFatFree','cVisceral'].forEach(id=>document.getElementById(id).value='');
 }
 
 // Init
-renderDash();renderProgressSummary();renderLog();renderPRs();
+initApp();
 
 // Ticker
 (function(){
